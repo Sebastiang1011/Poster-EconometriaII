@@ -42,3 +42,18 @@ print(type(ex_base))
 print(ex_base.head()) # Primeras observaciones
 print(ex_base.tail())
 # %%
+fechas_ex_base = pd.date_range(
+    start="1992-01",
+    periods=len(ex_base),
+    freq="MS"
+)
+
+# Agregar el índice temporal a la base de datos del precio de las exportaciones
+ex_base.index = fechas_ex_base
+
+# El tipo de objeto de la base de datos sigue siendo Pandas.DataFrame
+print(type(ex_base))
+
+# Ver primeras y últimas observaciones de la base de datos, ahora con índice temporal
+print(ex_base.head(21)) # Primeras observaciones
+print(ex_base.tail()) # Últimas observaciones 
