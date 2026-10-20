@@ -21,13 +21,13 @@ from statsmodels.tsa.stattools import adfuller, kpss
 BASE_DIR = Path(__file__).resolve().parent
 
 #Ruta de la base de datos
-ruta_ex = BASE_DIR / "datos.xlsx"
+ruta_ex = BASE_DIR / "datos.csv"
 
 # %% =========================
 # SERIE: EXPORTACIONES DE CARBON DE COLOMBIA (1996-2026)
 # ============================
 
-ex_base = pd.read_excel(
+ex_base = pd.read_csv(
     ruta_ex,
     header=None,
     names=["precio_exportaciones"],
