@@ -1,3 +1,7 @@
+# %% =========================
+# IMPORTACION DE PAQUETES
+# ============================
+
 from pathlib import Path
 
 # Módulos de numpy, pandas, matplotlib y scipy
@@ -14,4 +18,27 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.stattools import adfuller, kpss
 
 #Ruta del directorio raiz
-base_datos = Path(__file__).parent / "data" / "base_datos.csv"
+BASE_DIR = Path(__file__).resolve().parent
+
+#Ruta de la base de datos
+ruta_ex = BASE_DIR / "datos.xlsx"
+
+# %% =========================
+# SERIE: EXPORTACIONES DE CARBON DE COLOMBIA (1996-2026)
+# ============================
+
+ex_base = pd.read_excel(
+    ruta_ex,
+    header=None,
+    names=["precio_exportaciones"],
+    decimal=",",
+    sep="\t"
+)
+
+# Ver el tipo de objeto de la base de datos (Pandas.DataFrame)
+print(type(ex_base))
+
+# Ver primeras y últimas observaciones de la base de datos
+print(ex_base.head()) # Primeras observaciones
+print(ex_base.tail())
+# %%
