@@ -1,4 +1,4 @@
-# %% =========================
+#%% =========================
 # IMPORTACION DE PAQUETES
 # ============================
 
@@ -280,4 +280,236 @@ else:
     print("KPSS-logaritmo: no rechazamos H0. Según el test, La serie es estacionaria.")
 
 # Nota: Según los resultados de la prueba ADF y KPSS, NO hay que 
-#       diferenciar la serie, dado que esta es estacionaria. 
+#       diferenciar la serie, dado que esta es estacionaria.
+
+
+
+# # %% Identificación del modelo usando FAC y FACP
+
+# La FAC muestra que solo la primera autocorrelación es significativa.
+# La FACP decae rápidamente.
+# Por tanto, se propone inicialmente un modelo MA(1) sobre la serie
+# transformada, equivalente a un ARIMA(0, 1, 1) sobre log(expo_serie).
+
+# P.d. También se pueden usar criterios de información para la 
+#      Selección de los ordenes p y q del modelo ARIMA. 
+#      Para acá se uso uso el criterio de la FAC y la FACP
+# %% =========================
+# Paso 2: Estimación
+# ============================ 
+# ARIMA(0, 1, 1)
+# Acá es donde se específica el modelo 
+modelo_arima = SARIMAX(
+    np.log(expo_serie),
+    order=(0, 1, 1),
+    trend="n",
+    enforce_stationarity=False,
+    enforce_invertibility=False
+)
+
+# Objeto tipo "SARIMAX" del paquete statmodels
+type(modelo_arima)
+
+#  Acá es donde se realiza la estimación del modelo ARIMA(0, 1, 1)
+estimacion_arima = modelo_arima.fit(disp=False)
+
+# Nota: El método de estimación es máxima verosimilitud 
+#       sobre la representación del modelo en un espacio de estados
+
+# Objeto tipo "SARIMAXResultsWrapper"
+type(estimacion_arima)
+
+# Se imprimen los resultados principales de la estimación
+# E.g. Coeficientes y significancia de los coeficientes
+print(estimacion_arima.summary())
+ 
+
+# MA(1)
+modelo_ma1 = SARIMAX(
+    np.log(expo_serie),
+    order=(0, 0, 1),
+    trend="n",
+    enforce_stationarity=False,
+    enforce_invertibility=False
+)
+
+estimacion_ma1 = modelo_ma1.fit(disp=False)
+
+print(estimacion_ma1.summary())
+
+ # MA(2)
+modelo_ma2 = SARIMAX(
+    np.log(expo_serie),
+    order=(0, 0, 2),
+    trend="n",
+    enforce_stationarity=False,
+    enforce_invertibility=False
+)
+
+estimacion_ma2 = modelo_ma2.fit(disp=False)
+
+print(estimacion_ma2.summary())
+
+#Basandonos en las pruebas AIC y BIC, el modelo ARIMA(0,1,1) es el mejor modelo para la serie de tiempo de exportaciones de carbon.
+
+# %% =========================
+# Paso 3: Validación de supuestos
+# ============================
+
+# Residuales del modelo
+residuales = estimacion_arima.resid.dropna()
+
+# Los residuales son un objeto tipo Pandas.Series
+type(residuales)
+
+# Gráfica de los residuales (deberían comportarse como ruido blanco)
+plt.figure(figsize=(10, 5))
+plt.plot(residuales.iloc[1:-1])
+plt.title("Residuales del modelo ARIMA(0,1,1)")
+plt.xlabel("Fecha")
+plt.ylabel("Valor")
+plt.grid(True)
+plt.show()
+
+# Descripción de los residuales 
+print(residuales.describe())
+
+# %% FAC y FACP de los residuales
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+plot_acf(
+    residuales,
+    lags=24,
+    alpha=0.05,
+    bartlett_confint=False,
+    ax=axes[0]
+)
+
+axes[0].set_title("FAC de los residuales")
+
+plot_pacf(
+    residuales,
+    lags=24,
+    alpha=0.05,
+    ax=axes[1]
+)
+
+axes[1].set_title("FACP de los residuales")
+
+plt.tight_layout()
+plt.show()
+
+
+# %% Prueba Ljung-Box
+
+ljung_box = acorr_ljungbox(
+    residuales,
+    lags=[6, 12, 18, 24],
+    return_df=True
+)
+
+print("Prueba Ljung-Box")
+print(ljung_box)
+
+# H0: no hay autocorrelación en los residuos.
+# Si p-value > 0.05, no se rechaza H0.
+
+# %% FAC y FACP de los residuales al cuadrado
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+plot_acf(
+    residuales**2,
+    lags=24,
+    alpha=0.05,
+    bartlett_confint=False,
+    ax=axes[0]
+)
+
+axes[0].set_title("FAC de los residuales al cuadrado")
+
+plot_pacf(
+    residuales**2,
+    lags=24,
+    alpha=0.05,
+    ax=axes[1]
+)
+
+axes[1].set_title("FACP de los residuales al cuadrado")
+
+plt.tight_layout()
+plt.show()
+
+# %% Prueba ARCH de heterocedasticidad
+
+arch_test = het_arch(residuales, nlags=12) 
+
+print("Prueba ARCH")
+print("LM statistic:", arch_test[0])
+print("LM p-value:", arch_test[1])
+
+# H0: no hay efectos ARCH.
+# Si p-value > 0.05, no se rechaza H0.
+
+# %% Q-Q plot de los residuos
+
+plt.figure(figsize=(6, 6))
+probplot(residuales.iloc[1:-1], dist="norm", plot=plt)
+plt.title("Q-Q plot de los residuos")
+plt.grid(True)
+plt.show()
+
+# %% Prueba de normalidad Jarque-Bera
+
+jb_test = jarque_bera(residuales.iloc[1:-1])
+
+print("Prueba Jarque-Bera")
+print("Jarque-Bera statistic:", jb_test.statistic)
+print("Jarque-Bera p-value:", jb_test.pvalue)
+
+# H0: los residuos no siguen una distribución normal.
+# Si p-value < 0.05, se rechaza H0.
+
+# %% =========================
+# PASO 4: Pronóstico
+# ============================
+
+# A partir de la estimación del ARIMA(0,1,1) realizó el pronóstico
+
+# Protonóstico 12 pasos adelante
+pronostico_log = estimacion_arima.get_forecast(steps=12)
+
+# Pronóstico puntual e intervalos de predicción del logaritmo de las exportaciones tradicionales
+pronostico_puntual_log = pronostico_log.predicted_mean
+varianza_pronostico_log = pronostico_log.var_pred_mean
+intervalos_log = pronostico_log.conf_int()
+
+
+pronostico_nivel = np.exp(pronostico_puntual_log + 0.5 * varianza_pronostico_log)
+intervalos_nivel = np.exp(intervalos_log)
+
+tabla_pronostico = pd.DataFrame({
+    "pronostico": pronostico_nivel,
+    "limite_inferior": intervalos_nivel.iloc[:, 0],
+    "limite_superior": intervalos_nivel.iloc[:, 1]
+})
+
+print(tabla_pronostico)
+
+# Gráfica del pronóstico
+plt.figure(figsize=(10, 5))
+plt.plot(expo_serie, label="Datos históricos")
+plt.plot(pronostico_nivel, label="Pronóstico", color="orange")
+plt.fill_between(
+    pronostico_nivel.index,
+    intervalos_nivel.iloc[:, 0],
+    intervalos_nivel.iloc[:, 1],
+    color="orange",
+    alpha=0.3,
+    label="Intervalo de confianza"
+)
+plt.legend()
+plt.show()
+# Note que para un MA(1), los pronósticos puntuales se vuelven 
+# constantes después del primer paso adelante
