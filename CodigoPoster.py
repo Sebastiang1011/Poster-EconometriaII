@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent
 ruta_ex = BASE_DIR / "datos.csv"
 
 # %% =========================
-# SERIE: EXPORTACIONES DE CARBON DE COLOMBIA (1996-2026)
+# SERIE: EXPORTACIONES DE CARBON DE COLOMBIA (1992-2026)
 # ============================
 
 ex_base = pd.read_csv(
@@ -34,13 +34,6 @@ ex_base = pd.read_csv(
     decimal=",",
     sep="\t"
 )
-
-# Ver el tipo de objeto de la base de datos (Pandas.DataFrame)
-print(type(ex_base))
-
-# Ver primeras y últimas observaciones de la base de datos
-print(ex_base.head()) # Primeras observaciones
-print(ex_base.tail())
 # %%
 fechas_ex_base = pd.date_range(
     start="1992-01",
@@ -50,13 +43,6 @@ fechas_ex_base = pd.date_range(
 
 # Agregar el índice temporal a la base de datos del precio de las exportaciones
 ex_base.index = fechas_ex_base
-
-# El tipo de objeto de la base de datos sigue siendo Pandas.DataFrame
-print(type(ex_base))
-
-# Ver primeras y últimas observaciones de la base de datos, ahora con índice temporal
-print(ex_base.head(21)) # Primeras observaciones
-print(ex_base.tail()) # Últimas observaciones 
 
 # %% Creación de la serie de tiempo de "exportaciones"
 
@@ -160,7 +146,7 @@ else:
 # Nota: Según los resultados de la prueba ADF y KPSS, NO hay que 
 #       diferenciar la serie, dado que esta es estacionaria. 
 
-# %% Logaritmo del precio del carbon (en niveles)
+# %% Logaritmo de las exportaciones de carbon (en niveles)
 
 expo_serie_log = np.log(expo_serie)
 
@@ -172,7 +158,7 @@ plt.ylabel("Log(Exportaciones de carbon)")
 plt.grid(True)
 plt.show()
 
-# %% FAC y FACP del precio del té (serie en logaritmos)
+# %% FAC y FACP de las exportaciones de carbon (serie en logaritmos)
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
@@ -202,7 +188,7 @@ plt.show()
 
 expo_serie_log_diff = np.log(expo_serie).diff().dropna()
 
-# Gráfica de la serie de tiempo de la "diferencia del logaritmo de exportaciones tradicionales"
+# Gráfica de la serie de tiempo de la "diferencia del logaritmo de exportaciones de carbon"
 plt.figure(figsize=(10, 5))
 plt.plot(expo_serie_log_diff)
 plt.title("Diferencia del logaritmo de la serie original")
@@ -278,11 +264,6 @@ if kpss_result[1] < 0.05:
     print("KPSS-logaritmo: rechazamos H0. Según el test, la serie es no estacionaria.")
 else:
     print("KPSS-logaritmo: no rechazamos H0. Según el test, La serie es estacionaria.")
-
-# Nota: Según los resultados de la prueba ADF y KPSS, NO hay que 
-#       diferenciar la serie, dado que esta es estacionaria.
-
-
 
 # # %% Identificación del modelo usando FAC y FACP
 
@@ -478,9 +459,9 @@ print("Jarque-Bera p-value:", jb_test.pvalue)
 # A partir de la estimación del ARIMA(0,1,1) realizó el pronóstico
 
 # Protonóstico 12 pasos adelante
-pronostico_log = estimacion_arima.get_forecast(steps=12)
+pronostico_log = estimacion_arima.get_forecast(steps=10)
 
-# Pronóstico puntual e intervalos de predicción del logaritmo de las exportaciones tradicionales
+# Pronóstico puntual e intervalos de predicción del logaritmo de las exportaciones de carbon
 pronostico_puntual_log = pronostico_log.predicted_mean
 varianza_pronostico_log = pronostico_log.var_pred_mean
 intervalos_log = pronostico_log.conf_int()
@@ -511,5 +492,3 @@ plt.fill_between(
 )
 plt.legend()
 plt.show()
-# Note que para un MA(1), los pronósticos puntuales se vuelven 
-# constantes después del primer paso adelante
